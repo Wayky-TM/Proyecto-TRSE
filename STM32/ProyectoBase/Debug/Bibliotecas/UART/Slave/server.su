@@ -1,0 +1,9 @@
+server.c:35:6:UART_initialize	16	static
+server.c:45:12:_run_command	24	static
+server.c:57:16:_error_check	16	static
+server.c:65:6:UART_start_server	24	static
+server.c:133:5:UART_register_command	16	static
+server.c:147:6:UART_notify_RxCplt	8	static
+server.c:154:6:UART_notify_TxCplt	8	static
+server.c:161:13:serial_receive	32	static
+server.c:183:13:serial_send	32	static

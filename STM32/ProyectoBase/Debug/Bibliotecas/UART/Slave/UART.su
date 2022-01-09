@@ -1,0 +1,2 @@
+UART.c:13:20:serial_receive	24	static
+UART.c:22:20:serial_send	24	static
