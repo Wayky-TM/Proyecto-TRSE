@@ -14,7 +14,7 @@ int error_check(enum sp_return result);
 
 
 #define ERROR_CHECK(result)	do{ \
-								if( (result)!= SP_OK ){ \
+								if( (result) < 0 ){ \
 									return UART_DEVERROR \
 								} \
 							}while(0)
