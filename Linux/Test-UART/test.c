@@ -6,6 +6,16 @@
 #include "client.h"
 
 
+#define CMD_WRITE_LED			(0x1)
+#define CMD_WRITE_MULTIPLE_LEDS	(0x2)
+#define CMD_READ_ANALOG			(0x3)
+
+#define ADDR_ANALOG_X	(0)
+#define ADDR_ANALOG_Y	(1)
+#define ADDR_ANALOG_Z	(2)
+#define ADDR_ANALOG_T	(3)
+
+
 
 int main( int argc, char ** argv )
 {
@@ -55,19 +65,19 @@ int main( int argc, char ** argv )
 
 		tx_data.W = contador++;
 
-		send_command( 0x02, 0x00, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 ); // Leds
+		send_command( CMD_WRITE_MULTIPLE_LEDS, 0x00, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 ); // Leds
 
 
-		send_command( 0x03, 0x00, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 );
+		send_command( CMD_READ_ANALOG, ADDR_ANALOG_X, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 );
 		X = rx_data.F;
 
-		send_command( 0x03, 0x01, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 );
+		send_command( CMD_READ_ANALOG, ADDR_ANALOG_Y, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 );
 		Y = rx_data.F;
 
-		send_command( 0x03, 0x02, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 );
+		send_command( CMD_READ_ANALOG, ADDR_ANALOG_Z, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 );
 		Z = rx_data.F;
 
-		send_command( 0x03, 0x03, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 );
+		send_command( CMD_READ_ANALOG, ADDR_ANALOG_T, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 );
 		Temp = rx_data.F;
 
 		printf( "Medidas: (X: %f, Y: %f, Z: %f, T: %f)\n", X, Y, Z, Temp );

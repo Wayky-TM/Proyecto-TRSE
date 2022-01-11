@@ -466,6 +466,8 @@ static void MX_GPIO_Init(void)
 /* Obtención y filtrado de las muestras */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 
+
+
 	for( uint8_t i=0; i<4; ++i )
 		filtered_analog_values[i] = (2*filtered_analog_values[i] + 6*ADC_DMA_buffer[i])/8;
 }

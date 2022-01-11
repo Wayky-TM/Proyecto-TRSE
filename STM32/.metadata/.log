@@ -52,3 +52,18 @@ Command-line arguments:  -os win32 -ws win32 -arch x86_64
 
 !ENTRY com.st.stm32cube.ide.mcu.build 4 4 2022-01-10 00:25:54.710
 !MESSAGE Failed to check relative, returning possibly relative path: D:\Dropbox\Importantes\UNI\MISE\TRSE\Proyecto\Repo\Proyecto-TRSE\STM32\ProyectoBase\Release/"" literal was "${workspace_loc:/${ProjName}/Bibliotecas/Registros}"
+!SESSION 2022-01-11 11:41:08.220 -----------------------------------------------
+eclipse.buildId=Version 1.8.0
+java.version=11.0.11
+java.vendor=AdoptOpenJDK
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2022-01-11 11:41:27.447
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2022-01-11 11:41:27.552
+!MESSAGE Log4j initialized with config file D:\Dropbox\Importantes\UNI\MISE\TRSE\Proyecto\Repo\Proyecto-TRSE\STM32\.metadata\.log4j.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2022-01-11 11:41:42.328
+!MESSAGE Started RMI Server, listening on port 41337
