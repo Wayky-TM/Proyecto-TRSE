@@ -509,12 +509,12 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
 	while(1)
   {
-		if (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4)) //pulsador externo, encolar valor 2
+		if (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4)) //pulsador externo
 		{
 			osEventFlagsSet(myEvent01Handle, 0x01);
 			flagread = 1;
 		}
-		if (!HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13)) //pulsador interno, encolar valor 1
+		if (!HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13)) //pulsador interno
 		{
 			osEventFlagsSet(myEvent01Handle, 0x02);
 			flagread = 0;
