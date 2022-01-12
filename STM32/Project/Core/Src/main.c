@@ -560,9 +560,6 @@ void StartTask02(void *argument)
 				dato.ejeX = HAL_ADC_GetValue (& hadc1);
 				//Añadido para conversion
 				Axout = (((dato.ejeX * Vref)/4095)-1.6)/0.32;
-				//angle_x = atan2(Axout,(sqrt(pow(Ayout,2)+pow(Azout,2))))*(180/PI);//en grados, formula sacada de internet
-				angle_x= asin(Axout)*(180/PI);//en grados
-				dato.ejeX = angle_x;
 			}
 			status = HAL_ADC_PollForConversion (&hadc1 , 1);
 			if(status  ==  HAL_OK)
@@ -570,9 +567,6 @@ void StartTask02(void *argument)
 				dato.ejeY = HAL_ADC_GetValue (& hadc1);
 				//Añadido para conversion
 				Ayout = (((dato.ejeY * Vref)/4095)-1.6)/0.32;
-				//angle_y = atan2(Ayout,(sqrt(pow(Axout,2)+pow(Azout,2))))*(180/PI); //en grados, formula sacada de internet
-				angle_y= asin(Ayout)*(180/PI);//en grados
-				dato.ejeY = angle_y;
 			}
 			status = HAL_ADC_PollForConversion (&hadc1 , 1);
 			if(status  ==  HAL_OK)
@@ -580,10 +574,13 @@ void StartTask02(void *argument)
 				dato.ejeZ = HAL_ADC_GetValue (& hadc1);
 				//Añadido para conversion
 				Azout = (((dato.ejeZ * Vref)/4095)-1.7)/0.32;
-				//angle_z = atan2((sqrt(pow(Axout,2)+pow(Ayout,2))),Azout)*(180/PI);  //en grados, formula sacada de internet
-				angle_z= asin(Azout)*(180/PI);//en grados
-				dato.ejeZ = angle_z;
 			}
+      angle_x = atan2(Axout,(sqrt(pow(Ayout,2)+pow(Azout,2))))*(180/PI);//en grados, formula sacada de internet
+			angle_y = atan2(Ayout,(sqrt(pow(Axout,2)+pow(Azout,2))))*(180/PI); //en grados, formula sacada de internet
+			angle_z = atan2((sqrt(pow(Axout,2)+pow(Ayout,2))),Azout)*(180/PI);  //en grados, formula sacada de internet
+			dato.ejeX = angle_x;
+			dato.ejeY = angle_y;
+			dato.ejeZ = angle_z;
 			osMessageQueuePut(myQueue01Handle, &dato, 0, osWaitForever);
 			HAL_ADC_Stop (& hadc1); /* FIN */
 		 }
