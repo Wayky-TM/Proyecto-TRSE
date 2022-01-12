@@ -71,7 +71,16 @@ const osThreadAttr_t IOTask_attributes = {
 /* USER CODE BEGIN PV */
 
 volatile uint16_t ADC_DMA_buffer[4];
-uint16_t filtered_analog_values[4];
+
+#define ANALOG_BUFFER_SIZE	(5)
+
+#define INDICE_CANAL_X (0)
+#define INDICE_CANAL_Y (1)
+#define INDICE_CANAL_Z (2)
+#define INDICE_CANAL_T (3)
+
+uint16_t analog_buffer[4][ANALOG_BUFFER_SIZE];
+uint8_t current_sample_index;
 
 /* USER CODE END PV */
 
@@ -324,7 +333,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 839;
+  htim3.Init.Prescaler = 419;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 99;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -466,8 +475,10 @@ static void MX_GPIO_Init(void)
 /* Obtención y filtrado de las muestras */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 
+	current_sample_index = (current_sample_index+1)%ANALOG_BUFFER_SIZE;
+
 	for( uint8_t i=0; i<4; ++i )
-		filtered_analog_values[i] = (2*filtered_analog_values[i] + 6*ADC_DMA_buffer[i])/8;
+		analog_buffer[i][current_sample_index] = ADC_DMA_buffer[i];
 }
 
 
@@ -532,20 +543,20 @@ int read_analog( uint8_t address, const union Data * tx, union Data * rx )
 
 	switch( address )
 	{
-	case 0:
-		rx->F = filtered_analog_values[0]*(3.3/4096.0);
+	case INDICE_CANAL_X:
+		rx->F = analog_buffer[INDICE_CANAL_X][current_sample_index]*(3.3/4096.0);
 		break;
 
-	case 1:
-		rx->F = filtered_analog_values[1]*(3.3/4096.0);
+	case INDICE_CANAL_Y:
+		rx->F = analog_buffer[INDICE_CANAL_Y][current_sample_index]*(3.3/4096.0);
 		break;
 
-	case 2:
-		rx->F = filtered_analog_values[2]*(3.3/4096.0);
+	case INDICE_CANAL_Z:
+		rx->F = analog_buffer[INDICE_CANAL_Z][current_sample_index]*(3.3/4096.0);
 		break;
 
-	case 3:
-		rx->F = filtered_analog_values[3]*(3.3/4096.0);
+	case INDICE_CANAL_T:
+		rx->F = analog_buffer[INDICE_CANAL_T][current_sample_index]*(3.3/4096.0);
 		break;
 	}
 
