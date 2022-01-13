@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "server.h"
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,6 +33,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define READ_RAW_ANALOG_VALUES	(1)
+
+#define VREF (3.3f)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -70,16 +74,17 @@ const osThreadAttr_t IOTask_attributes = {
 };
 /* USER CODE BEGIN PV */
 
+
 volatile uint16_t ADC_DMA_buffer[4];
 
-#define ANALOG_BUFFER_SIZE	(5)
+#define ANALOG_BUFFER_SIZE	(11)
 
-#define INDICE_CANAL_X (0)
-#define INDICE_CANAL_Y (1)
-#define INDICE_CANAL_Z (2)
-#define INDICE_CANAL_T (3)
+#define DIR_CANAL_X (0)
+#define DIR_CANAL_Y (1)
+#define DIR_CANAL_Z (2)
+#define DIR_CANAL_T (3)
 
-uint16_t analog_buffer[4][ANALOG_BUFFER_SIZE];
+float analog_buffer[4][ANALOG_BUFFER_SIZE];
 uint8_t current_sample_index;
 
 /* USER CODE END PV */
@@ -333,7 +338,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 419;
+  htim3.Init.Prescaler = 209;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 99;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -482,6 +487,15 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 }
 
 
+/* Funciones para la transformación de los valores del ADC */
+
+
+//float AnguloX( float X, float Y, float Z )
+//{
+//
+//}
+
+
 /*
  * Comandos definidos
  *
@@ -536,27 +550,52 @@ int write_multiple_leds( uint8_t address, const union Data * tx, union Data * rx
 
 int read_analog( uint8_t address, const union Data * tx, union Data * rx )
 {
+#if !READ_RAW_ANALOG_VALUES
+	float Axout, Ayout, Azout;
+#endif
+
 	if( address > 3 )
 	{
 		return CMD_INVALID_ADDR;
 	}
 
+#if !READ_RAW_ANALOG_VALUES
+	Axout = (((analog_buffer[DIR_CANAL_X][current_sample_index] * VREF)/4095.0)-1.6)/0.32;
+	Ayout = (((analog_buffer[DIR_CANAL_Y][current_sample_index] * VREF)/4095.0)-1.6)/0.32;
+	Azout = (((analog_buffer[DIR_CANAL_Z][current_sample_index] * VREF)/4095.0)-1.7)/0.32;
+#endif
+
 	switch( address )
 	{
-	case INDICE_CANAL_X:
-		rx->F = analog_buffer[INDICE_CANAL_X][current_sample_index]*(3.3/4096.0);
+	case DIR_CANAL_X:
+
+#if READ_RAW_ANALOG_VALUES
+		rx->F = (analog_buffer[DIR_CANAL_X][current_sample_index] * VREF)/4095.0);
+#else
+		rx->F = atan2(Axout,(sqrt(pow(Ayout,2)+pow(Azout,2))))*(180/PI);//en grados, formula sacada de internet
+#endif
 		break;
 
-	case INDICE_CANAL_Y:
-		rx->F = analog_buffer[INDICE_CANAL_Y][current_sample_index]*(3.3/4096.0);
+	case DIR_CANAL_Y:
+
+#if READ_RAW_ANALOG_VALUES
+		rx->F = (analog_buffer[DIR_CANAL_Y][current_sample_index] * VREF)/4095.0);
+#else
+		rx->F = atan2(Ayout,(sqrt(pow(Axout,2)+pow(Azout,2))))*(180.0/PI); // En grados, formula sacada de internet
+#endif
 		break;
 
-	case INDICE_CANAL_Z:
-		rx->F = analog_buffer[INDICE_CANAL_Z][current_sample_index]*(3.3/4096.0);
+	case DIR_CANAL_Z:
+
+#if READ_RAW_ANALOG_VALUES
+		rx->F = (analog_buffer[DIR_CANAL_Z][current_sample_index] * VREF)/4095.0);
+#else
+		rx->F = atan2((sqrt(pow(Axout,2)+pow(Ayout,2))),Azout)*(180.0/PI); // En grados, formula sacada de internet
+#endif
 		break;
 
-	case INDICE_CANAL_T:
-		rx->F = analog_buffer[INDICE_CANAL_T][current_sample_index]*(3.3/4096.0);
+	case DIR_CANAL_T:
+		rx->F = analog_buffer[DIR_CANAL_T][current_sample_index]*(VREF/4095.0);
 		break;
 	}
 
