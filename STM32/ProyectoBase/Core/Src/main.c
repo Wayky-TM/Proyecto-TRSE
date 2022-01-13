@@ -36,6 +36,15 @@
 #define READ_RAW_ANALOG_VALUES	(1)
 
 #define VREF (3.3f)
+
+#define ANALOG_BUFFER_SIZE	(11)
+
+#define DIR_CANAL_X (0)
+#define DIR_CANAL_Y (1)
+#define DIR_CANAL_Z (2)
+#define DIR_CANAL_T (3)
+
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -77,13 +86,6 @@ const osThreadAttr_t IOTask_attributes = {
 
 volatile uint16_t ADC_DMA_buffer[4];
 
-#define ANALOG_BUFFER_SIZE	(11)
-
-#define DIR_CANAL_X (0)
-#define DIR_CANAL_Y (1)
-#define DIR_CANAL_Z (2)
-#define DIR_CANAL_T (3)
-
 float analog_buffer[4][ANALOG_BUFFER_SIZE];
 uint8_t current_sample_index;
 
@@ -106,6 +108,58 @@ void StartIOTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+void led_on(uint8_t v)
+{
+	switch (v)
+	{
+		case 0:
+			HAL_GPIO_WritePin(D3_LED1_GPIO_Port, D3_LED1_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(D6_LED2_GPIO_Port, D6_LED2_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(D7_LED3_GPIO_Port, D7_LED3_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(D8_LED4_GPIO_Port, D8_LED4_Pin, GPIO_PIN_SET);
+			break;
+		case 1:
+			HAL_GPIO_WritePin(D3_LED1_GPIO_Port, D3_LED1_Pin, GPIO_PIN_SET);
+			break;
+		case 2:
+			HAL_GPIO_WritePin(D6_LED2_GPIO_Port, D6_LED2_Pin, GPIO_PIN_SET);
+			break;
+		case 3:
+			HAL_GPIO_WritePin(D7_LED3_GPIO_Port, D7_LED3_Pin, GPIO_PIN_SET);
+			break;
+		case 4:
+			HAL_GPIO_WritePin(D8_LED4_GPIO_Port, D8_LED4_Pin, GPIO_PIN_SET);
+			break;
+
+	}
+}
+
+void led_off(uint8_t v)
+{
+	switch (v)
+	{
+		case 0:
+			HAL_GPIO_WritePin(D3_LED1_GPIO_Port, D3_LED1_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(D6_LED2_GPIO_Port, D6_LED2_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(D7_LED3_GPIO_Port, D7_LED3_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(D8_LED4_GPIO_Port, D8_LED4_Pin, GPIO_PIN_RESET);
+			break;
+		case 1:
+			HAL_GPIO_WritePin(D3_LED1_GPIO_Port, D3_LED1_Pin, GPIO_PIN_RESET);
+			break;
+		case 2:
+			HAL_GPIO_WritePin(D6_LED2_GPIO_Port, D6_LED2_Pin, GPIO_PIN_RESET);
+			break;
+		case 3:
+			HAL_GPIO_WritePin(D7_LED3_GPIO_Port, D7_LED3_Pin, GPIO_PIN_RESET);
+			break;
+		case 4:
+			HAL_GPIO_WritePin(D8_LED4_GPIO_Port, D8_LED4_Pin, GPIO_PIN_RESET);
+			break;
+	}
+}
 
 /* USER CODE END 0 */
 
@@ -471,6 +525,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(D5_EXTI_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
