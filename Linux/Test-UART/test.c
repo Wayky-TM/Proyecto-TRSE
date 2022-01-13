@@ -125,6 +125,8 @@ void* logger()
 
 			/* Escritura al log */
 			fprintf(fd, "%f,%f,%f,%f\n", X, Y, Z, Temp);
+
+			sleep(1);
 		}
     }
 
