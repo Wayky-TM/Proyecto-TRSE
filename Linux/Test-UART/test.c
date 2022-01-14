@@ -30,7 +30,6 @@ pthread_mutex_t serial_mutex;
 int modo = 0;
 
 char nombre_logs[50];
-char ruta_logs[100];
 
 #if USE_TERMIOS
 int configureUART(int fd)
@@ -88,11 +87,9 @@ void* logger()
 	t = time(NULL);
 	tm = *localtime(&t);
 
-	sprintf( nombre_logs, "Log_%d-%02d-%02d_%02d:%02d:%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec );
-	strcpy(ruta_completa, ruta_logs);
-	strcat(ruta_completa, nombre_logs);
+	sprintf( nombre_logs, "./logs/Log_%d-%02d-%02d_%02d:%02d:%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec );
 
-    fd = fopen(ruta_completa, "w+");
+    fd = fopen(nombre_logs, "w+");
 
     if (fd < 0)
     {
@@ -100,7 +97,8 @@ void* logger()
         pthread_exit(NULL);
     }
 
-    fprintf(fd, "angulo_x,angulo_y,angulo_z,temperatura\n"); // Cabeceras para formato .csv
+	fprintf(fd, "--- Log valores de sensores ---\n\n");
+    fprintf(fd, "%10s %20s %30s %40s\n", "angulo_x", "angulo_y", "angulo_z", "temperatura"); // Cabeceras para formato .csv
 
     while(1)
     {
@@ -124,7 +122,7 @@ void* logger()
 			pthread_mutex_unlock (&serial_mutex);
 
 			/* Escritura al log */
-			fprintf(fd, "%f,%f,%f,%f\n", X, Y, Z, Temp);
+			fprintf(fd, "%10f ,%20f,%30f,%40f\n", X, Y, Z, Temp);
 
 			sleep(1);
 		}
@@ -214,24 +212,8 @@ int main( int argc, char ** argv )
 
     printf("\n");
 
-    uint8_t path_is_valid=0;
-    DIR* dir;
-
-
-    while( !path_is_valid ){
-    	printf("Introduzca la ruta donde se guardaran los logs:\n");
-    	scanf("%s", ruta_logs);
-
-    	dir = opendir(ruta_logs);
-    	if (dir) {
-    		path_is_valid = 1;
-    	    closedir(dir);
-    	}
-    	else{
-    		printf("La ruta introducida no es valida\n\n");
-    	}
-
-    }
+	//crea el directorio si no existe para guardar los logs
+	mkdir("./logs");
 
     //printf("\e[1;1H\e[2J"); // Limpia el terminal
     printf("\n");
