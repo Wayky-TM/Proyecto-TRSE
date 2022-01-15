@@ -1,9 +1,3 @@
-/*
- * util.c
- *
- *  Created on: Jan 5, 2022
- *      Author: Álvaro
- */
 
 #include "util.h"
 

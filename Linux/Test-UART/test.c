@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <dirent.h>
 #include "client.h"
 
@@ -30,6 +33,7 @@ pthread_mutex_t serial_mutex;
 int modo = 0;
 
 char nombre_logs[50];
+char current_path[150];
 
 #if USE_TERMIOS
 int configureUART(int fd)
@@ -74,16 +78,6 @@ void* logger()
     time_t t;
     struct tm tm;
 
-	char ruta_completa[150];
-
-//	printf("Introduce nombre de fichero: \n");
-//	scanf("%s", &input);
-//	strcat (input, ".txt");
-
-	//Igual si hay tiempo poner en la interfaz que se pueda
-	//crear un archivo si se quiere en lugar de uno generico cada vez
-
-
 	t = time(NULL);
 	tm = *localtime(&t);
 
@@ -97,14 +91,13 @@ void* logger()
         pthread_exit(NULL);
     }
 
-	fprintf(fd, "--- Log valores de sensores ---\n\n");
-    fprintf(fd, "%10s %20s %30s %40s\n", "angulo_x", "angulo_y", "angulo_z", "temperatura"); // Cabeceras para formato .csv
+    fprintf(fd, "%55s\n\n", "--- Log valores de sensores ---");
+    fprintf(fd, "%10s %15s %20s %25s\n", "angulo_x", "angulo_y", "angulo_z", "temperatura"); // Cabeceras para formato .csv
 
     while(1)
     {
 		if(modo == 1)
 		{
-
 			pthread_mutex_lock (&serial_mutex);
 
 			send_command( CMD_READ_ANALOG, ADDR_ANALOG_X, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 );
@@ -122,10 +115,15 @@ void* logger()
 			pthread_mutex_unlock (&serial_mutex);
 
 			/* Escritura al log */
-			fprintf(fd, "%10f ,%20f,%30f,%40f\n", X, Y, Z, Temp);
+			fprintf(fd, "%10f %15f %20f %25f\n", X, Y, Z, Temp);
 
-			sleep(1);
 		}
+		else if( modo == 9 )
+		{
+			break;
+		}
+
+		sleep(1);
     }
 
 	fclose(fd);
@@ -151,9 +149,16 @@ void* commandLeds()
 
 			pthread_mutex_unlock (&serial_mutex);
 
-			sleep(1);
 		}
+		else if( modo == 9 )
+		{
+			break;
+		}
+
+		sleep(1);
     }
+
+	pthread_exit(NULL);
 }
 
 
@@ -167,7 +172,9 @@ void* interface()
 		printf("Selecciona el modo: \n");
 		printf("1. Lectura de sensores.\n");
 		printf("2. Comandar LEDS.\n");
+		printf("9. Finalizar programa.\n");
 		scanf("%d", &input);
+
 
 		if (input == 1)
 		{
@@ -177,12 +184,18 @@ void* interface()
 		{
 			modo = 2;
 		}
+		else if (input == 9)
+		{
+			modo = 9;
+			break;
+		}
 		else
 		{
 			printf("Modo erroneo seleccionado. \n");
 		}
 	}
 
+	pthread_exit(NULL);
 }
 
 int main( int argc, char ** argv )
@@ -210,12 +223,27 @@ int main( int argc, char ** argv )
 	}
 #endif
 
-    printf("\n");
 
-	//crea el directorio si no existe para guardar los logs
-	mkdir("./logs");
+   if (getcwd(current_path, sizeof(current_path)) == NULL) {
+	   perror("getcwd() error");
+	   return -1;
+   }
 
-    //printf("\e[1;1H\e[2J"); // Limpia el terminal
+   	strcat(current_path, "/logs/");
+
+   	DIR* dir = opendir(current_path);
+
+   	if (dir){ // La carpeta existe
+   	    closedir(dir);
+   	}
+   	else
+   	{
+   		if( mkdir(current_path, 0777) < 0 ){
+			perror("'mkdir' error");
+			return -1;
+   		}
+   	}
+
     printf("\n");
 
     pthread_mutex_init(&serial_mutex, NULL);

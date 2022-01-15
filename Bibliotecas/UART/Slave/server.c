@@ -1,9 +1,3 @@
-/*
- * server.c
- *
- *  Created on: Jan 5, 2022
- *      Author: Álvaro
- */
 
 #include "server.h"
 

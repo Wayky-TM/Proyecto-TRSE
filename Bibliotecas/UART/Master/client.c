@@ -1,9 +1,3 @@
-/*
- * master.c
- *
- *  Created on: Jan 3, 2022
- *      Author: Álvaro
- */
 
 #include "client.h"
 

@@ -1,9 +1,3 @@
-/*
- * util.h
- *
- *  Created on: Jan 4, 2022
- *      Author: Álvaro
- */
 
 #ifndef _UTIL_H_
 #define _UTIL_H_

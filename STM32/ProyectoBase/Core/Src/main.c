@@ -611,9 +611,6 @@ int write_multiple_leds( uint8_t address, const union Data * tx, union Data * rx
 
 int read_analog( uint8_t address, const union Data * tx, union Data * rx )
 {
-#if !READ_RAW_ANALOG_VALUES
-	float Axout, Ayout, Azout;
-#endif
 
 	if( address > 3 )
 	{
@@ -621,6 +618,8 @@ int read_analog( uint8_t address, const union Data * tx, union Data * rx )
 	}
 
 #if !READ_RAW_ANALOG_VALUES
+	float Axout, Ayout, Azout;
+
 	Axout = (((analog_buffer[DIR_CANAL_X][current_sample_index] * VREF)/4095.0)-1.6)/0.32;
 	Ayout = (((analog_buffer[DIR_CANAL_Y][current_sample_index] * VREF)/4095.0)-1.6)/0.32;
 	Azout = (((analog_buffer[DIR_CANAL_Z][current_sample_index] * VREF)/4095.0)-1.7)/0.32;
@@ -631,16 +630,16 @@ int read_analog( uint8_t address, const union Data * tx, union Data * rx )
 	case DIR_CANAL_X:
 
 #if READ_RAW_ANALOG_VALUES
-		rx->F = (analog_buffer[DIR_CANAL_X][current_sample_index] * VREF)/4095.0);
+		rx->F = (analog_buffer[DIR_CANAL_X][current_sample_index] * VREF)/4095.0;
 #else
-		rx->F = atan2(Axout,(sqrt(pow(Ayout,2)+pow(Azout,2))))*(180/PI);//en grados, formula sacada de internet
+		rx->F = atan2(Axout,(sqrt(pow(Ayout,2)+pow(Azout,2))))*(180/PI); // En grados, formula sacada de internet
 #endif
 		break;
 
 	case DIR_CANAL_Y:
 
 #if READ_RAW_ANALOG_VALUES
-		rx->F = (analog_buffer[DIR_CANAL_Y][current_sample_index] * VREF)/4095.0);
+		rx->F = (analog_buffer[DIR_CANAL_Y][current_sample_index] * VREF)/4095.0;
 #else
 		rx->F = atan2(Ayout,(sqrt(pow(Axout,2)+pow(Azout,2))))*(180.0/PI); // En grados, formula sacada de internet
 #endif
@@ -649,16 +648,34 @@ int read_analog( uint8_t address, const union Data * tx, union Data * rx )
 	case DIR_CANAL_Z:
 
 #if READ_RAW_ANALOG_VALUES
-		rx->F = (analog_buffer[DIR_CANAL_Z][current_sample_index] * VREF)/4095.0);
+		rx->F = (analog_buffer[DIR_CANAL_Z][current_sample_index] * VREF)/4095.0;
 #else
 		rx->F = atan2((sqrt(pow(Axout,2)+pow(Ayout,2))),Azout)*(180.0/PI); // En grados, formula sacada de internet
 #endif
 		break;
 
 	case DIR_CANAL_T:
-		rx->F = analog_buffer[DIR_CANAL_T][current_sample_index]*(VREF/4095.0);
+		rx->F = (analog_buffer[DIR_CANAL_T][current_sample_index]*VREF)/4095.0;
 		break;
 	}
+
+	return CMD_SUCCESS;
+}
+
+
+
+int activate_led_pattern1( uint8_t address, const union Data * tx, union Data * rx )
+{
+
+
+	return CMD_SUCCESS;
+}
+
+
+
+int activate_led_pattern2( uint8_t address, const union Data * tx, union Data * rx )
+{
+
 
 	return CMD_SUCCESS;
 }

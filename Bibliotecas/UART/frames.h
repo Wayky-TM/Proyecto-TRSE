@@ -1,9 +1,3 @@
-/*
- * frames.h
- *
- *  Created on: Jan 3, 2022
- *      Author: Álvaro
- */
 
 #ifndef _UART_FRAMES_H_
 #define _UART_FRAMES_H_

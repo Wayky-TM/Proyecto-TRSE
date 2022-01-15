@@ -1,9 +1,3 @@
-/*
- * master.h
- *
- *  Created on: Jan 3, 2022
- *      Author: Álvaro
- */
 
 #ifndef _CLIENT_H_
 #define _CLIENT_H_

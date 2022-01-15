@@ -1,9 +1,3 @@
-/*
- * server.h
- *
- *  Created on: Jan 5, 2022
- *      Author: Álvaro
- */
 
 #ifndef _SLAVE_SERVER_H_
 #define _SLAVE_SERVER_H_

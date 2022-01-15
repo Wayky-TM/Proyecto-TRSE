@@ -1,9 +1,3 @@
-/*
- * UART.h
- *
- *  Created on: Jan 3, 2022
- *      Author: Álvaro
- */
 
 #ifndef BIBLIOTECAS_UART_UART_H_
 #define BIBLIOTECAS_UART_UART_H_
