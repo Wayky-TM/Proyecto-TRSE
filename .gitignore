@@ -1,2 +1,4 @@
 Linux/.metadata/
 STM32/.metadata/
+*/Debug/
+*/Release/
