@@ -32,8 +32,9 @@ pthread_mutex_t serial_mutex;
 
 int modo = 0;
 
-char nombre_logs[50];
-char current_path[150];
+char nombre_logs[60];
+char folder_path[100];
+char file_path[150];
 
 #if USE_TERMIOS
 int configureUART(int fd)
@@ -81,9 +82,11 @@ void* logger()
 	t = time(NULL);
 	tm = *localtime(&t);
 
-	sprintf( nombre_logs, "./logs/Log_%d-%02d-%02d_%02d:%02d:%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec );
+	sprintf( nombre_logs, "Log_%d-%02d-%02d_%02d:%02d:%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec );
+	strcpy( file_path, folder_path );
+	strcat( file_path, nombre_logs );
 
-    fd = fopen(nombre_logs, "w+");
+    fd = fopen(file_path, "w+");
 
     if (fd < 0)
     {
@@ -116,6 +119,7 @@ void* logger()
 
 			/* Escritura al log */
 			fprintf(fd, "%10f %15f %20f %25f\n", X, Y, Z, Temp);
+			printf( "(%f,%f,%f,%f)\n", X, Y, Z, Temp);
 
 		}
 		else if( modo == 9 )
@@ -223,28 +227,40 @@ int main( int argc, char ** argv )
 	}
 #endif
 
+    DIR* dir;
 
-   if (getcwd(current_path, sizeof(current_path)) == NULL) {
-	   perror("getcwd() error");
-	   return -1;
-   }
+    while(1)
+    {
+    	printf("\nIntroduzca el directorio donde guardar los logs:");
+    	scanf( "%s", folder_path );
 
-   	strcat(current_path, "/logs/");
+    	dir = opendir(folder_path);
 
-   	DIR* dir = opendir(current_path);
-
-   	if (dir){ // La carpeta existe
-   	    closedir(dir);
-   	}
-   	else
-   	{
-   		if( mkdir(current_path, 0777) < 0 ){
-			perror("'mkdir' error");
-			return -1;
-   		}
-   	}
+    	if (dir){ // La carpeta existe
+			closedir(dir);
+			break;
+		}
+		else
+		{
+			printf("Error: la carpeta elegida no existe\n\n");
+		}
+    }
 
     printf("\n");
+//   	strcat(current_path, "/logs/");
+//
+//   	DIR* dir = opendir(current_path);
+//
+//   	if (dir){ // La carpeta existe
+//   	    closedir(dir);
+//   	}
+//   	else
+//   	{
+//   		if( mkdir(current_path, 0777) < 0 ){
+//			perror("'mkdir' error");
+//			return -1;
+//   		}
+//   	}
 
     pthread_mutex_init(&serial_mutex, NULL);
 
