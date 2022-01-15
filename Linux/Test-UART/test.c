@@ -227,6 +227,8 @@ int main( int argc, char ** argv )
 	}
 #endif
 
+    printf("%50s\n", "--- Proyecto tiempo real ---");
+
     DIR* dir;
 
     while(1)

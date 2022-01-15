@@ -44,6 +44,13 @@
 #define DIR_CANAL_Z (2)
 #define DIR_CANAL_T (3)
 
+#define LED_ANIMATION_1	(1)
+#define LED_ANIMATION_2	(2)
+
+#define ENABLE_LED_ANIMATION_1	(0x1)
+#define ENABLE_LED_ANIMATION_2	(0x2)
+
+#define MAX_ANIM_PERIOD_FACTOR	(10)
 
 /* USER CODE END PD */
 
@@ -60,26 +67,36 @@ TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart2;
 
-/* Definitions for MainTask */
-osThreadId_t MainTaskHandle;
-const osThreadAttr_t MainTask_attributes = {
-  .name = "MainTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
 /* Definitions for SerialCommTask */
 osThreadId_t SerialCommTaskHandle;
 const osThreadAttr_t SerialCommTask_attributes = {
   .name = "SerialCommTask",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityBelowNormal7,
+  .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for IOTask */
-osThreadId_t IOTaskHandle;
-const osThreadAttr_t IOTask_attributes = {
-  .name = "IOTask",
+/* Definitions for LedAnimation1 */
+osThreadId_t LedAnimation1Handle;
+const osThreadAttr_t LedAnimation1_attributes = {
+  .name = "LedAnimation1",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityRealtime,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for LedAnimation2 */
+osThreadId_t LedAnimation2Handle;
+const osThreadAttr_t LedAnimation2_attributes = {
+  .name = "LedAnimation2",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for LedArrayMutex */
+osMutexId_t LedArrayMutexHandle;
+const osMutexAttr_t LedArrayMutex_attributes = {
+  .name = "LedArrayMutex"
+};
+/* Definitions for LedAnimationEvents */
+osEventFlagsId_t LedAnimationEventsHandle;
+const osEventFlagsAttr_t LedAnimationEvents_attributes = {
+  .name = "LedAnimationEvents"
 };
 /* USER CODE BEGIN PV */
 
@@ -88,6 +105,9 @@ volatile uint16_t ADC_DMA_buffer[4];
 
 float analog_buffer[4][ANALOG_BUFFER_SIZE];
 uint8_t current_sample_index;
+
+
+uint8_t animation_period_factor=5;
 
 /* USER CODE END PV */
 
@@ -99,8 +119,8 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM3_Init(void);
 void StartMainTask(void *argument);
-void StartSerialCommTask(void *argument);
-void StartIOTask(void *argument);
+void StartLedAnimation1(void *argument);
+void StartLedAnimation2(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -204,6 +224,9 @@ int main(void)
 
   /* Init scheduler */
   osKernelInitialize();
+  /* Create the mutex(es) */
+  /* creation of LedArrayMutex */
+  LedArrayMutexHandle = osMutexNew(&LedArrayMutex_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -222,18 +245,21 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of MainTask */
-  MainTaskHandle = osThreadNew(StartMainTask, NULL, &MainTask_attributes);
-
   /* creation of SerialCommTask */
-  SerialCommTaskHandle = osThreadNew(StartSerialCommTask, NULL, &SerialCommTask_attributes);
+  SerialCommTaskHandle = osThreadNew(StartMainTask, NULL, &SerialCommTask_attributes);
 
-  /* creation of IOTask */
-  IOTaskHandle = osThreadNew(StartIOTask, NULL, &IOTask_attributes);
+  /* creation of LedAnimation1 */
+  LedAnimation1Handle = osThreadNew(StartLedAnimation1, NULL, &LedAnimation1_attributes);
+
+  /* creation of LedAnimation2 */
+  LedAnimation2Handle = osThreadNew(StartLedAnimation2, NULL, &LedAnimation2_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
+
+  /* creation of LedAnimationEvents */
+  LedAnimationEventsHandle = osEventFlagsNew(&LedAnimationEvents_attributes);
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
@@ -538,6 +564,24 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	switch( GPIO_Pin )
+	{
+	case GPIO_PIN_15: // Botón de la placa Nucleo (+ velocidad)
+		animation_period_factor = (animation_period_factor==1 ? MAX_ANIM_PERIOD_FACTOR : animation_period_factor-1);
+		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+		break;
+
+	case GPIO_PIN_4: // Botón externo (- velocidad)
+		animation_period_factor = (animation_period_factor==MAX_ANIM_PERIOD_FACTOR ? 1 : animation_period_factor+1);
+		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+		break;
+	}
+}
+
+
 /* Obtención y filtrado de las muestras */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 
@@ -548,65 +592,12 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 }
 
 
-/* Funciones para la transformación de los valores del ADC */
-
-
-//float AnguloX( float X, float Y, float Z )
-//{
-//
-//}
 
 
 /*
  * Comandos definidos
  *
  * */
-
-int write_single_led( uint8_t address, const union Data * tx, union Data * rx )
-{
-	rx->W = 0;
-
-	if( address > 3 )
-	{
-		return CMD_INVALID_ADDR;
-	}
-
-	switch( address )
-	{
-	case 0:
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, (tx->W != 0 ? GPIO_PIN_SET : GPIO_PIN_RESET));
-		break;
-
-	case 1:
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, (tx->W != 0 ? GPIO_PIN_SET : GPIO_PIN_RESET));
-		break;
-
-	case 2:
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, (tx->W != 0 ? GPIO_PIN_SET : GPIO_PIN_RESET));
-		break;
-
-	case 3:
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, (tx->W != 0 ? GPIO_PIN_SET : GPIO_PIN_RESET));
-		break;
-	}
-
-	return CMD_SUCCESS;
-}
-
-
-
-int write_multiple_leds( uint8_t address, const union Data * tx, union Data * rx )
-{
-	rx->W = 0;
-
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, ( (tx->B[0] & 0x1)!=0 ? GPIO_PIN_SET : GPIO_PIN_RESET));
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, ( (tx->B[0] & 0x2)!=0 ? GPIO_PIN_SET : GPIO_PIN_RESET));
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, ( (tx->B[0] & 0x4)!=0 ? GPIO_PIN_SET : GPIO_PIN_RESET));
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, ( (tx->B[0] & 0x8)!=0 ? GPIO_PIN_SET : GPIO_PIN_RESET));
-
-	return CMD_SUCCESS;
-}
-
 
 
 int read_analog( uint8_t address, const union Data * tx, union Data * rx )
@@ -664,18 +655,24 @@ int read_analog( uint8_t address, const union Data * tx, union Data * rx )
 
 
 
-int activate_led_pattern1( uint8_t address, const union Data * tx, union Data * rx )
+int switch_led_animations( uint8_t address, const union Data * tx, union Data * rx )
 {
 
+	switch( tx->W )
+	{
+	case LED_ANIMATION_1:
+		osEventFlagsClear(LedAnimationEventsHandle, ENABLE_LED_ANIMATION_2);
+		osEventFlagsSet(LedAnimationEventsHandle, ENABLE_LED_ANIMATION_1);
+		break;
 
-	return CMD_SUCCESS;
-}
+	case LED_ANIMATION_2:
+		osEventFlagsClear(LedAnimationEventsHandle, ENABLE_LED_ANIMATION_1);
+		osEventFlagsSet(LedAnimationEventsHandle, ENABLE_LED_ANIMATION_2);
+		break;
 
-
-
-int activate_led_pattern2( uint8_t address, const union Data * tx, union Data * rx )
-{
-
+	default:
+		return CMD_INVALID_DATA;
+	}
 
 	return CMD_SUCCESS;
 }
@@ -689,6 +686,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 		UART_notify_RxCplt();
 	}
 }
+
 
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
@@ -711,54 +709,94 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
 void StartMainTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(10);
-  }
+
+	UART_register_command( 0x1, switch_led_animations );
+	UART_register_command( 0x3, read_analog );
+
+	UART_initialize( &huart2, 100 );
+
+	UART_start_server();
+
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_StartSerialCommTask */
+/* USER CODE BEGIN Header_StartLedAnimation1 */
 /**
-* @brief Function implementing the SerialCommTask thread.
+* @brief Function implementing the LedAnimation1 thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartSerialCommTask */
-void StartSerialCommTask(void *argument)
+/* USER CODE END Header_StartLedAnimation1 */
+void StartLedAnimation1(void *argument)
 {
-  /* USER CODE BEGIN StartSerialCommTask */
-  /* Infinite loop */
+  /* USER CODE BEGIN StartLedAnimation1 */
 
-  /* Registro de los comandos a utilizar */
-  UART_register_command( 0x1, write_single_led );
-  UART_register_command( 0x2, write_multiple_leds );
-  UART_register_command( 0x3, read_analog );
+	osEventFlagsSet(LedAnimationEventsHandle, ENABLE_LED_ANIMATION_1);
 
-  UART_initialize( &huart2, 100 );
 
-  UART_start_server();
+	for(;;)
+	{
+		osEventFlagsWait(LedAnimationEventsHandle, ENABLE_LED_ANIMATION_1, osFlagsWaitAny|osFlagsNoClear, osWaitForever);
+		osMutexAcquire(LedArrayMutexHandle, osWaitForever);
 
-  /* USER CODE END StartSerialCommTask */
+
+	  	led_off(0);
+		for (uint8_t i=1; i<5; i++)
+		{
+			led_on(i);
+			osDelay(80*animation_period_factor);
+		}
+
+		for (uint8_t i=1;i<5;i++)
+		{
+			led_off(i);
+			osDelay(80*animation_period_factor);
+		}
+
+		led_on(0);
+		osDelay(80*animation_period_factor);
+
+		led_off(0);
+		osDelay(80*animation_period_factor);
+
+		osMutexRelease(LedArrayMutexHandle);
+  }
+  /* USER CODE END StartLedAnimation1 */
 }
 
-/* USER CODE BEGIN Header_StartIOTask */
+/* USER CODE BEGIN Header_StartLedAnimation2 */
 /**
-* @brief Function implementing the IOTask thread.
+* @brief Function implementing the LedAnimation2 thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartIOTask */
-void StartIOTask(void *argument)
+/* USER CODE END Header_StartLedAnimation2 */
+void StartLedAnimation2(void *argument)
 {
-  /* USER CODE BEGIN StartIOTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(10);
-  }
-  /* USER CODE END StartIOTask */
+  /* USER CODE BEGIN StartLedAnimation2 */
+
+	osEventFlagsClear(LedAnimationEventsHandle, ENABLE_LED_ANIMATION_2);
+
+	for(;;)
+	{
+		osEventFlagsWait(LedAnimationEventsHandle, ENABLE_LED_ANIMATION_2, osFlagsWaitAny|osFlagsNoClear, osWaitForever);
+		osMutexAcquire(LedArrayMutexHandle, osWaitForever);
+
+		led_off(0);
+		led_on(1);
+		led_off(2);
+		led_on(3);
+		osDelay(100*animation_period_factor);
+
+		led_on(0);
+		led_off(1);
+		led_on(2);
+		led_off(3);
+		osDelay(100*animation_period_factor);
+
+		osMutexRelease(LedArrayMutexHandle);
+	}
+  /* USER CODE END StartLedAnimation2 */
 }
 
 /**
