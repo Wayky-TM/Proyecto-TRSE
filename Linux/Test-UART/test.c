@@ -14,9 +14,8 @@
 #define USE_TERMIOS	(0)
 
 
-#define CMD_WRITE_LED			(0x1)
-#define CMD_WRITE_MULTIPLE_LEDS	(0x2)
-#define CMD_READ_ANALOG			(0x3)
+#define CMD_SWITCH_LED_ANIMATION	(0x1)
+#define CMD_READ_ANALOG				(0x3)
 
 #define ADDR_ANALOG_X	(0)
 #define ADDR_ANALOG_Y	(1)
@@ -31,6 +30,7 @@ pthread_t commandLedsTask;
 pthread_mutex_t serial_mutex;
 
 int modo = 0;
+uint8_t animacion_actual = 1;
 
 char nombre_logs[60];
 char folder_path[100];
@@ -119,7 +119,7 @@ void* logger()
 
 			/* Escritura al log */
 			fprintf(fd, "%10f %15f %20f %25f\n", X, Y, Z, Temp);
-			printf( "(%f,%f,%f,%f)\n", X, Y, Z, Temp);
+//			printf( "(%f,%f,%f,%f)\n", X, Y, Z, Temp);
 
 		}
 		else if( modo == 9 )
@@ -139,20 +139,18 @@ void* logger()
 void* commandLeds()
 {
 	union Data tx_data, rx_data;
-	uint8_t contador = 0;
 
 	while(1)
     {
 		if(modo == 2)
 		{
-			tx_data.W = contador++;
+			tx_data.W = animacion_actual;
 
 			pthread_mutex_lock (&serial_mutex);
 
-			send_command( CMD_WRITE_MULTIPLE_LEDS, 0x00, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 );
+			send_command( CMD_SWITCH_LED_ANIMATION, 0x00, &tx_data, &rx_data, UART_TIMEOUT_FOREVER, 3 );
 
 			pthread_mutex_unlock (&serial_mutex);
-
 		}
 		else if( modo == 9 )
 		{
@@ -170,6 +168,7 @@ void* commandLeds()
 void* interface()
 {
 	int input;
+	int configuration;
 
 	while(1)
 	{
@@ -187,6 +186,17 @@ void* interface()
 		else if (input == 2)
 		{
 			modo = 2;
+
+			do{
+				printf("\nElige la configuración:\n");
+				printf("1. Animación 1\n");
+				printf("2. Animación 2\n");
+				scanf("%d", &configuration);
+			}while( configuration!=1 && configuration!=2 );
+
+			animacion_actual = configuration;
+
+
 		}
 		else if (input == 9)
 		{
